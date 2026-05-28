@@ -76,7 +76,27 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
 .mini-cell{aspect-ratio:1;border-radius:4px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;}
 .mini-cell.checked{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);}.mini-cell.is-today{border-color:var(--info);}
 .mini-count{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5;padding-bottom:2px;}
-#detail-view{display:none;}
+#detail-view{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:150;
+  background:var(--bg);
+  overflow-y:auto;
+  animation:detailIn 0.22s ease;
+}
+#detail-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:149;
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  animation:fadeInBd 0.22s ease;
+}
+@keyframes detailIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeInBd{from{opacity:0;}to{opacity:1;}}
 .back-btn{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text2);cursor:pointer;margin-bottom:1rem;background:none;border:none;padding:0;}
 .back-btn:hover{color:var(--text);}
 .detail-icon{font-size:44px;line-height:1;display:block;margin-bottom:10px;}
@@ -185,7 +205,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
     </div>
     <div id="dash-edit-bar" style="display:none;justify-content:space-between;align-items:center;margin-bottom:1rem;"><span style="font-size:13px;color:var(--text2);line-height:1.5;">Drag to reorder</span><button class="btn btn-primary" onclick="saveDashOrder()" style="padding:6px 14px;font-size:13px;"><i class="ti ti-check"></i> Done</button></div><div id="goals-area"></div>
   </div>
-  <div id="detail-view"></div>
+  <div id="detail-backdrop"></div><div id="detail-view"></div>
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="setView('dashboard',this)" id="nav-dashboard"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
     <button class="nav-item" onclick="setView('all',this)" id="nav-all"><i class="ti ti-list"></i><span>All</span></button>
@@ -242,7 +262,7 @@ function setView(v,el){
   if(el)el.classList.add('active');
   document.getElementById('freq-row').style.display=['all','physical','character'].includes(v)?'flex':'none';
   document.getElementById('detail-view').style.display='none';
-  document.getElementById('main-view').style.display='block';
+  document.getElementById('detail-backdrop').style.display='none';
   var edb=document.getElementById('edit-dash-btn');
   var bar=document.getElementById('dash-edit-bar');
   if(edb){edb.style.display=v==='dashboard'?'':'none';edb.innerHTML='<i class="ti ti-layout-list"></i> Edit order';}
@@ -321,7 +341,13 @@ function goalCard(g){
   return '<div class="goal-card'+(done?' done-card':'')+'" onclick="openDetail(\''+g.id+'\')"><div class="card-top"><div class="card-title-row"><span class="card-icon">'+(g.icon||'🎯')+'</span><span class="card-title">'+g.title+'</span></div><div class="badges"><span class="badge badge-'+g.type+'">'+g.type+'</span>'+freqBadge+doneBadge+'</div></div><div class="card-purpose">'+g.purpose+'</div>'+track+'<div class="card-meta"><span class="meta-tag">'+fmtSubcat(g)+'</span>'+dueBadge+streakTag+rems+'</div></div>';
 }
 
-function openDetail(id){const g=goals.find(x=>x.id===id);if(!g)return;if(detailWeekOffset[id]===undefined)detailWeekOffset[id]=0;document.getElementById('main-view').style.display='none';document.getElementById('detail-view').style.display='block';renderDetailView(id);}
+function openDetail(id){
+  const g=goals.find(x=>x.id===id);if(!g)return;
+  if(detailWeekOffset[id]===undefined)detailWeekOffset[id]=0;
+  document.getElementById('detail-backdrop').style.display='block';
+  document.getElementById('detail-view').style.display='block';
+  renderDetailView(id);
+}
 
 function renderDetailView(id){
   const g=goals.find(x=>x.id===id);if(!g)return;
@@ -359,7 +385,11 @@ function changeWeek(id,delta){if(detailWeekOffset[id]===undefined)detailWeekOffs
 function toggleCheckin(goalId,dateStr){const g=goals.find(x=>x.id===goalId);if(!g)return;if(!g.checkins)g.checkins={};if(g.checkins[dateStr])delete g.checkins[dateStr];else{g.checkins[dateStr]=true;updateStreak(g);}saveGoal(g);renderDetailView(goalId);}
 function renderAdditions(g){if(!g.additions||!g.additions.length)return '<div style="font-size:13px;color:var(--text3);padding:6px 0;line-height:1.6;">No additions yet.</div>';return [...g.additions].reverse().map(a=>'<div class="addition-row"><div><div class="addition-amt">+'+fmtUnit(g,a.amount)+'</div><div class="addition-cap">'+a.caption+'</div></div><div class="addition-date">'+fmtDate(a.date)+'</div></div>').join('');}
 function renderSummaries(g){if(!g.entries||!g.entries.length)return '<div style="font-size:13px;color:var(--text3);padding:6px 0;line-height:1.6;">No summaries yet.</div>';return [...g.entries].reverse().map(e=>'<div class="summary-row"><div class="summary-date">'+fmtDate(e.date)+'</div><div class="summary-text">'+e.text+'</div></div>').join('');}
-function closeDetail(){document.getElementById('detail-view').style.display='none';document.getElementById('main-view').style.display='block';render();}
+function closeDetail(){
+  document.getElementById('detail-view').style.display='none';
+  document.getElementById('detail-backdrop').style.display='none';
+  render();
+}
 
 function confirmFinishGoal(id){const g=goals.find(x=>x.id===id);if(!g)return;showModal('<div class="confirm-box"><span class="confirm-icon">🏁</span><div class="confirm-title">Finish this goal?</div><div class="confirm-sub">This will move "'+g.title+'" to your archive. You can un-finish it later if needed.</div><div class="confirm-actions"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-success" onclick="finishGoal(\''+id+'\')"><i class="ti ti-flag"></i> Yes, finish it!</button></div></div>');}
 function finishGoal(id){const g=goals.find(x=>x.id===id);if(!g)return;g.completed=true;g.archived=true;g.completedAt=today();saveGoal(g);closeModal();renderDetailView(id);}
