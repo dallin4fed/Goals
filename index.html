@@ -405,7 +405,7 @@ function startFlappy(returnGoalId){
 function closeFlappy(returnGoalId){document.getElementById('flappy-overlay').style.display='none';document.getElementById('flappy-overlay').innerHTML='';if(returnGoalId)renderDetailView(returnGoalId);}
 
 function openAddSummary(id){showModal('<h2>Today\'s summary</h2><div class="form-group"><label>How did you live out this goal today?</label><textarea id="f-sum" style="min-height:90px;" placeholder="Write a brief reflection..."></textarea></div><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddSummary(\''+id+'\')">Save</button></div>');}
-async function doAddSummary(id){const g=goals.find(x=>x.id===id);if(!g)return;const txt=document.getElementById('f-sum').value.trim();if(!txt){alert('Write something first.');return;}if(!g.entries)g.entries=[];g.entries.push({text:txt,date:today()});updateStreak(g);await saveGoal(g);closeModal();renderDetailView(id);}
+async function doAddSummary(id){const g=goals.find(x=>x.id===id);if(!g)return;const txt=document.getElementById('f-sum').value.trim();if(!txt){alert('Write something first.');return;}if(!g.entries)g.entries=[];g.entries.push({text:txt,date:today()});updateStreak(g);await saveGoal(g);closeModal();showRewardPrompt(id);}
 </script>
 </body>
 </html>
