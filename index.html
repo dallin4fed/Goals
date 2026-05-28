@@ -141,7 +141,15 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
 #flappy-canvas{border-radius:var(--radius);border:3px solid rgba(255,255,255,0.15);}
 .flappy-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .notif-banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);border-radius:var(--radius);padding:12px 20px;font-size:14px;font-weight:500;z-index:999;max-width:360px;width:90%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideDown 0.3s ease;line-height:1.5;}
-@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-16px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-16px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}.drag-list{display:flex;flex-direction:column;gap:8px;}.drag-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;display:flex;align-items:center;gap:10px;cursor:grab;user-select:none;transition:box-shadow 0.15s,opacity 0.15s;}.drag-card:active{cursor:grabbing;}.drag-card.dragging{opacity:0.35;}.drag-card.drag-over{border-color:var(--accent);border-width:2px;}.drag-handle{color:var(--text3);font-size:20px;flex-shrink:0;}.drag-icon{font-size:20px;flex-shrink:0;}.drag-title{font-size:14px;font-weight:600;flex:1;line-height:1.5;padding-bottom:1px;}.drag-badge{font-size:11px;padding:2px 7px;border-radius:99px;font-weight:500;flex-shrink:0;}
+.drag-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;display:flex;align-items:center;gap:10px;cursor:grab;user-select:none;transition:box-shadow 0.15s,opacity 0.15s;}
+.drag-card:active{cursor:grabbing;}
+.drag-card.dragging{opacity:0.4;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
+.drag-card.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);}
+.drag-handle{color:var(--text3);font-size:18px;flex-shrink:0;}
+.drag-card-icon{font-size:20px;flex-shrink:0;}
+.drag-card-title{font-size:14px;font-weight:600;flex:1;line-height:1.5;}
+.drag-card-badge{font-size:11px;padding:2px 7px;border-radius:99px;font-weight:500;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -166,16 +174,16 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
       <h1>My goals</h1>
       <div class="header-right">
         <span class="pin-badge" id="pin-display"></span>
-        <button class="btn btn-primary" onclick="openNewGoal()"><i class="ti ti-plus"></i> New goal</button>
+        <button class="btn btn-secondary" id="edit-dash-btn" onclick="toggleDashEdit()" style="display:none;padding:6px 12px;font-size:13px;"><i class="ti ti-layout-list"></i> Edit order</button><button class="btn btn-primary" onclick="openNewGoal()"><i class="ti ti-plus"></i> New goal</button>
       </div>
     </div>
-    <div id="freq-row" class="freq-tabs" style="display:none;">
-      <button class="ftab active" onclick="setFreq('all',this)">All</button>
+
+
       <button class="ftab" onclick="setFreq('daily',this)">Daily</button>
       <button class="ftab" onclick="setFreq('weekly',this)">Weekly</button>
       <button class="ftab" onclick="setFreq('longterm',this)">Long-term</button>
     </div>
-    <div id="goals-area"></div>
+    <div id="dash-edit-bar" style="display:none;justify-content:space-between;align-items:center;margin-bottom:1rem;"><span style="font-size:13px;color:var(--text2);line-height:1.5;">Drag to reorder</span><button class="btn btn-primary" onclick="saveDashOrder()" style="padding:6px 14px;font-size:13px;"><i class="ti ti-check"></i> Done</button></div><div id="goals-area"></div>
   </div>
   <div id="detail-view"></div>
   <nav class="bottom-nav">
@@ -192,8 +200,8 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
 
 <script>
 const SUPABASE_URL='https://tydejvxkgslpmzuzwasf.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5ZGVqdnhrZ3NscG16dXp3YXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTUyODIsImV4cCI6MjA5NTQzMTI4Mn0.eXuvlLfTo6UdV24ahzz0P--01vsoEJ80gr4Y6-pu2EU';
-let goals=[],currentView='dashboard',currentFreq='all',formReminders=[],userPin=null,detailWeekOffset={},supabaseReady=false;
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5ZGVqdnhrZ3NscG16dXp3YXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTUyODIsImV4cCI6MjA5NTQzMTI4Mn0.eXuvlLfTo6UdV24ahzz0P--01vsoEJ80gr4Y6-pu2EU;
+let goals=[],currentView='dashboard',currentFreq='all',formReminders=[],userPin=null,detailWeekOffset={},supabaseReady=false,dashOrder=[],dashEditMode=false,flappyHighScore=0;
 const DOW_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DOW_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const PHYSICAL_SUBCATS=['Financial','Travel','Fitness','Health','Academic','Career','Other (custom)'];
@@ -210,7 +218,7 @@ function saveAllLocal(){try{localStorage.setItem('goals_'+userPin,JSON.stringify
 function loadFromLocal(){try{const r=localStorage.getItem('goals_'+userPin);if(r)goals=JSON.parse(r);}catch(e){goals=[];}}
 
 document.getElementById('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
-async function submitPin(){const val=document.getElementById('pin-input').value.trim();if(val.length<4||val.length>8||!/^\d+$/.test(val)){document.getElementById('pin-error').textContent='PIN must be 4–8 digits.';return;}document.getElementById('pin-error').textContent='';userPin=val;document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('pin-display').textContent='PIN: '+'•'.repeat(val.length);await loadFromSupabase();checkReminders();render();}
+async function submitPin(){const val=document.getElementById('pin-input').value.trim();if(val.length<4||val.length>8||!/^\d+$/.test(val)){document.getElementById('pin-error').textContent='PIN must be 4–8 digits.';return;}document.getElementById('pin-error').textContent='';userPin=val;document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('pin-display').textContent='PIN: '+'•'.repeat(val.length);await loadFromSupabase();loadDashOrder();try{flappyHighScore=parseInt(localStorage.getItem('flappyHS_'+userPin)||'0');}catch(e){}checkReminders();render();const edb=document.getElementById('edit-dash-btn');if(edb)edb.style.display='';}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function today(){return new Date().toISOString().slice(0,10);}
@@ -228,7 +236,7 @@ function updateStreak(g){const t=today();if(g.lastCheckin===t)return;const yest=
 function checkReminders(){const now=new Date(),h12=now.getHours()%12||12,ampm=now.getHours()<12?'AM':'PM',nowStr=h12+':'+now.getMinutes().toString().padStart(2,'0')+' '+ampm;goals.filter(g=>!g.completed&&!g.archived).forEach(g=>{(g.reminders||[]).forEach(r=>{if((r.time||'').trim()+' '+(r.ampm||'AM')===nowStr)showNotif('🔔 '+g.icon+' '+g.title);});});setTimeout(checkReminders,60000);}
 function showNotif(msg){const el=document.createElement('div');el.className='notif-banner';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),5000);}
 
-function setView(v,el){currentView=v;document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');document.getElementById('freq-row').style.display=['all','physical','character'].includes(v)?'flex':'none';document.getElementById('detail-view').style.display='none';document.getElementById('main-view').style.display='block';render();}
+function setView(v,el){currentView=v;dashEditMode=false;document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');document.getElementById('freq-row').style.display=['all','physical','character'].includes(v)?'flex':'none';document.getElementById('detail-view').style.display='none';document.getElementById('main-view').style.display='block';const edb=document.getElementById('edit-dash-btn');const bar=document.getElementById('dash-edit-bar');if(edb){edb.style.display=v==='dashboard'?'':'none';edb.innerHTML='<i class="ti ti-layout-list"></i> Edit order';}if(bar)bar.style.display='none';render();}
 function setFreq(f,el){currentFreq=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');render();}
 function isToday(g){if(g.frequency==='weekly'){const d=g.reminderDays||[];return d.length===0||d.includes(todayDOW());}return true;}
 
@@ -244,23 +252,34 @@ function render(){
   area.innerHTML=list.length?'<div class="goals-grid">'+list.map(goalCard).join('')+'</div>':'<div class="empty-state"><span class="empty-icon">🎯</span>No goals here yet.</div>';
 }
 function renderDashboard(area){
-  if(!goals.length){area.innerHTML='<div class="empty-state"><span class="empty-icon">🎯</span>No goals yet — hit "New goal" to start!</div>';return;}
-  const active=goals.filter(g=>!g.archived&&!g.completed),tg=active.filter(isToday);
-  function sec(lbl,ico,list){if(!list.length)return '';return '<div style="margin-bottom:1.5rem;"><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px;"><i class="ti '+ico+'" style="font-size:14px;"></i>'+lbl+'</div><div class="goals-grid">'+list.map(goalCard).join('')+'</div></div>';}
-  let html='<div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">'+DOW_FULL[todayDOW()]+"'s goals</div>";
-  html+=sec('Daily','ti-sun',tg.filter(g=>g.frequency==='daily'));
-  html+=sec('This week','ti-calendar-week',tg.filter(g=>g.frequency==='weekly'));
-  html+=sec('Long-term','ti-flag',tg.filter(g=>g.frequency==='longterm'));
-  html+=sec('General','ti-circle-dot',tg.filter(g=>!g.frequency));
-  if(!tg.length)html+='<div class="empty-state"><span class="empty-icon">☀️</span>No goals scheduled for today.</div>';
-  area.innerHTML=html;
+  if(!goals.length){area.innerHTML='<div class="empty-state"><span class="empty-icon">🎯</span>No goals yet!</div>';return;}
+  const active=goals.filter(g=>!g.archived&&!g.completed);
+  const ordered=[];
+  dashOrder.forEach(id=>{const g=active.find(x=>x.id===id);if(g)ordered.push(g);});
+  active.forEach(g=>{if(!dashOrder.includes(g.id))ordered.push(g);});
+  if(dashEditMode){
+    const cards=ordered.map(g=>'<div class="drag-card" draggable="true" data-id="'+g.id+'" ondragstart="dsDragStart(event)" ondragover="dsDragOver(event)" ondrop="dsDrop(event)" ondragend="dsDragEnd()"><i class="ti ti-grip-vertical drag-handle"></i><span class="drag-icon">'+(g.icon||'🎯')+'</span><span class="drag-title">'+g.title+'</span><span class="drag-badge badge badge-'+g.type+'">'+g.type+'</span></div>').join('');
+    area.innerHTML='<div class="drag-list" id="dash-drag-list">'+cards+'</div>';
+    return;
+  }
+  if(!ordered.length){area.innerHTML='<div class="empty-state"><span class="empty-icon">☀️</span>No active goals yet.</div>';return;}
+  area.innerHTML='<div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">'+DOW_FULL[todayDOW()]+"'s goals</div>"+'<div class="goals-grid">'+ordered.map(goalCard).join('')+'</div>';
 }
+let dsDragging=null;
+function dsDragStart(e){dsDragging=e.currentTarget;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function dsDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.drag-card').forEach(c=>c.classList.remove('drag-over'));if(e.currentTarget!==dsDragging)e.currentTarget.classList.add('drag-over');}
+function dsDrop(e){e.preventDefault();if(!dsDragging||e.currentTarget===dsDragging)return;const list=document.getElementById('dash-drag-list');if(dsDragging.compareDocumentPosition(e.currentTarget)&Node.DOCUMENT_POSITION_FOLLOWING)list.insertBefore(dsDragging,e.currentTarget.nextSibling);else list.insertBefore(dsDragging,e.currentTarget);document.querySelectorAll('.drag-card').forEach(c=>c.classList.remove('drag-over'));}
+function dsDragEnd(){if(dsDragging)dsDragging.classList.remove('dragging');dsDragging=null;}
+function toggleDashEdit(){dashEditMode=!dashEditMode;const btn=document.getElementById('edit-dash-btn');const bar=document.getElementById('dash-edit-bar');if(dashEditMode){btn.innerHTML='<i class="ti ti-x"></i> Cancel';bar.style.display='flex';}else{btn.innerHTML='<i class="ti ti-layout-list"></i> Edit order';bar.style.display='none';}render();}
+function saveDashOrder(){const list=document.getElementById('dash-drag-list');if(list)dashOrder=[...list.querySelectorAll('.drag-card')].map(c=>c.dataset.id);saveDashOrderLocal();dashEditMode=false;const btn=document.getElementById('edit-dash-btn');if(btn)btn.innerHTML='<i class="ti ti-layout-list"></i> Edit order';const bar=document.getElementById('dash-edit-bar');if(bar)bar.style.display='none';render();}
+function saveDashOrderLocal(){try{localStorage.setItem('dashOrder_'+userPin,JSON.stringify(dashOrder));}catch(e){}}
+function loadDashOrder(){try{const r=localStorage.getItem('dashOrder_'+userPin);if(r)dashOrder=JSON.parse(r);}catch(e){dashOrder=[];}}
 function renderArchive(area){
   const arch=goals.filter(g=>g.archived||g.completed);
   if(!arch.length){area.innerHTML='<div class="empty-state"><span class="empty-icon">🏆</span>No completed goals yet — keep going!</div>';return;}
   area.innerHTML='<div style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Completed goals</div><div class="goals-grid">'+arch.map(goalCard).join('')+'</div>';
 }
-function renderStats(area){
+function renderStats(area){const hs=flappyHighScore;
   const active=goals.filter(g=>!g.archived&&!g.completed),completed=goals.filter(g=>g.completed||g.archived);
   const longestStreak=goals.reduce((m,g)=>Math.max(m,g.streak||0),0);
   const totalCheckins=goals.reduce((s,g)=>s+Object.keys(g.checkins||{}).length,0);
