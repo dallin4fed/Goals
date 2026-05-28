@@ -200,7 +200,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;line-hei
 
 <script>
 const SUPABASE_URL='https://tydejvxkgslpmzuzwasf.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5ZGVqdnhrZ3NscG16dXp3YXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTUyODIsImV4cCI6MjA5NTQzMTI4Mn0.eXuvlLfTo6UdV24ahzz0P--01vsoEJ80gr4Y6-pu2EU;
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5ZGVqdnhrZ3NscG16dXp3YXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTUyODIsImV4cCI6MjA5NTQzMTI4Mn0.eXuvlLfTo6UdV24ahzz0P--01vsoEJ80gr4Y6-pu2EU';
 let goals=[],currentView='dashboard',currentFreq='all',formReminders=[],userPin=null,detailWeekOffset={},supabaseReady=false,dashOrder=[],dashEditMode=false,flappyHighScore=0;
 const DOW_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DOW_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -236,8 +236,25 @@ function updateStreak(g){const t=today();if(g.lastCheckin===t)return;const yest=
 function checkReminders(){const now=new Date(),h12=now.getHours()%12||12,ampm=now.getHours()<12?'AM':'PM',nowStr=h12+':'+now.getMinutes().toString().padStart(2,'0')+' '+ampm;goals.filter(g=>!g.completed&&!g.archived).forEach(g=>{(g.reminders||[]).forEach(r=>{if((r.time||'').trim()+' '+(r.ampm||'AM')===nowStr)showNotif('🔔 '+g.icon+' '+g.title);});});setTimeout(checkReminders,60000);}
 function showNotif(msg){const el=document.createElement('div');el.className='notif-banner';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),5000);}
 
-function setView(v,el){currentView=v;dashEditMode=false;document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');document.getElementById('freq-row').style.display=['all','physical','character'].includes(v)?'flex':'none';document.getElementById('detail-view').style.display='none';document.getElementById('main-view').style.display='block';const edb=document.getElementById('edit-dash-btn');const bar=document.getElementById('dash-edit-bar');if(edb){edb.style.display=v==='dashboard'?'':'none';edb.innerHTML='<i class="ti ti-layout-list"></i> Edit order';}if(bar)bar.style.display='none';render();}
-function setFreq(f,el){currentFreq=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');render();}
+function setView(v,el){
+  currentView=v;dashEditMode=false;
+  document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('freq-row').style.display=['all','physical','character'].includes(v)?'flex':'none';
+  document.getElementById('detail-view').style.display='none';
+  document.getElementById('main-view').style.display='block';
+  var edb=document.getElementById('edit-dash-btn');
+  var bar=document.getElementById('dash-edit-bar');
+  if(edb){edb.style.display=v==='dashboard'?'':'none';edb.innerHTML='<i class="ti ti-layout-list"></i> Edit order';}
+  if(bar)bar.style.display='none';
+  render();
+}
+function setFreq(f,el){
+  currentFreq=f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
 function isToday(g){if(g.frequency==='weekly'){const d=g.reminderDays||[];return d.length===0||d.includes(todayDOW());}return true;}
 
 function render(){
