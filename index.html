@@ -291,9 +291,10 @@ function render(){
 function renderDashboard(area){
   if(!goals.length){area.innerHTML='<div class="empty-state"><span class="empty-icon">🎯</span>No goals yet!</div>';return;}
   const active=goals.filter(g=>!g.archived&&!g.completed);
+  const dashVisible=active.filter(g=>g.showOnDash!==false);
   const ordered=[];
-  dashOrder.forEach(id=>{const g=active.find(x=>x.id===id);if(g)ordered.push(g);});
-  active.forEach(g=>{if(!dashOrder.includes(g.id))ordered.push(g);});
+  dashOrder.forEach(id=>{const g=dashVisible.find(x=>x.id===id);if(g)ordered.push(g);});
+  dashVisible.forEach(g=>{if(!dashOrder.includes(g.id))ordered.push(g);});
   if(dashEditMode){
     const cards=ordered.map(g=>'<div class="drag-card" draggable="true" data-id="'+g.id+'" ondragstart="dsDragStart(event)" ondragover="dsDragOver(event)" ondrop="dsDrop(event)" ondragend="dsDragEnd()"><i class="ti ti-grip-vertical drag-handle"></i><span class="drag-icon">'+(g.icon||'🎯')+'</span><span class="drag-title">'+g.title+'</span><span class="drag-badge badge badge-'+g.type+'">'+g.type+'</span></div>').join('');
     area.innerHTML='<div class="drag-list" id="dash-drag-list">'+cards+'</div>';
@@ -371,7 +372,7 @@ function renderDetailView(id){
   let actions='';
   if(done){actions='<button class="btn btn-primary" onclick="repeatGoal(\''+g.id+'\')"><i class="ti ti-refresh"></i> Repeat this goal</button><button class="btn btn-warning" onclick="confirmUnfinish(\''+g.id+'\')"><i class="ti ti-arrow-back"></i> Un-finish</button><button class="btn btn-danger" onclick="confirmDeleteGoal(\''+g.id+'\')"><i class="ti ti-trash"></i> Delete</button>';}
   else{actions='<button class="btn btn-success" onclick="confirmFinishGoal(\''+g.id+'\')"><i class="ti ti-flag"></i> Finish goal</button><button class="btn btn-secondary" onclick="openEditGoal(\''+g.id+'\')"><i class="ti ti-edit"></i> Edit</button><button class="btn btn-danger" onclick="confirmDeleteGoal(\''+g.id+'\')"><i class="ti ti-trash"></i> Delete</button>';}
-  dv.innerHTML='<div style="max-width:640px;margin:0 auto;padding:1.5rem 1rem 5rem;"><button class="back-btn" onclick="closeDetail()"><i class="ti ti-arrow-left"></i> Back</button>'+doneBanner+'<span class="detail-icon">'+(g.icon||'🎯')+'</span><div class="badges" style="margin-bottom:8px;"><span class="badge badge-'+g.type+'">'+g.type+'</span>'+(g.frequency?'<span class="badge badge-freq">'+(g.frequency==='longterm'?'long-term':g.frequency)+'</span>':'')+'<span class="meta-tag">'+fmtSubcat(g)+'</span></div><div class="detail-title">'+g.title+'</div>'+(g.frequency==='longterm'&&g.goalDate?'<div style="font-size:12px;color:var(--text3);margin-bottom:6px;line-height:1.6;"><i class="ti ti-calendar"></i> Goal date: '+fmtDate(g.goalDate)+'</div>':'')+'<div class="detail-purpose">'+g.purpose+'</div>'+remHTML+streakHTML+trackSection+'<div class="detail-actions">'+actions+'</div></div>';
+  dv.innerHTML='<div style="max-width:640px;margin:0 auto;padding:1.5rem 1rem 5rem;"><button class="back-btn" onclick="closeDetail()"><i class="ti ti-arrow-left"></i> Back</button>'+doneBanner+'<span class="detail-icon">'+(g.icon||'🎯')+'</span><div class="badges" style="margin-bottom:8px;"><span class="badge badge-'+g.type+'">'+g.type+'</span>'+(g.frequency?'<span class="badge badge-freq">'+(g.frequency==='longterm'?'long-term':g.frequency)+'</span>':'')+'<span class="meta-tag">'+fmtSubcat(g)+'</span></div><div class="detail-title">'+g.title+'</div>'+(g.frequency==='longterm'&&g.goalDate?'<div style="font-size:12px;color:var(--text3);margin-bottom:6px;line-height:1.6;"><i class="ti ti-calendar"></i> Goal date: '+fmtDate(g.goalDate)+'</div>':'')+'<div class="detail-purpose">'+g.purpose+'</div>'+'<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0 3px;margin-top:8px;border-top:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Show on dashboard</span><label class="toggle"><input type="checkbox" '+(g.showOnDash!==false?'checked':'')+' onchange="toggleShowOnDash(''+g.id+'',this.checked)"><span class="toggle-slider"></span></label></div>'+remHTML+streakHTML+trackSection+'<div class="detail-actions">'+actions+'</div></div>';
 }
 
 function renderChecklistDetail(g,offset){
@@ -385,6 +386,8 @@ function changeWeek(id,delta){if(detailWeekOffset[id]===undefined)detailWeekOffs
 function toggleCheckin(goalId,dateStr){const g=goals.find(x=>x.id===goalId);if(!g)return;if(!g.checkins)g.checkins={};if(g.checkins[dateStr])delete g.checkins[dateStr];else{g.checkins[dateStr]=true;updateStreak(g);}saveGoal(g);renderDetailView(goalId);}
 function renderAdditions(g){if(!g.additions||!g.additions.length)return '<div style="font-size:13px;color:var(--text3);padding:6px 0;line-height:1.6;">No additions yet.</div>';return [...g.additions].reverse().map(a=>'<div class="addition-row"><div><div class="addition-amt">+'+fmtUnit(g,a.amount)+'</div><div class="addition-cap">'+a.caption+'</div></div><div class="addition-date">'+fmtDate(a.date)+'</div></div>').join('');}
 function renderSummaries(g){if(!g.entries||!g.entries.length)return '<div style="font-size:13px;color:var(--text3);padding:6px 0;line-height:1.6;">No summaries yet.</div>';return [...g.entries].reverse().map(e=>'<div class="summary-row"><div class="summary-date">'+fmtDate(e.date)+'</div><div class="summary-text">'+e.text+'</div></div>').join('');}
+
+function toggleShowOnDash(id,val){var g=goals.find(x=>x.id===id);if(!g)return;g.showOnDash=val;saveGoal(g);}
 function closeDetail(){
   document.getElementById('detail-view').style.display='none';
   document.getElementById('detail-backdrop').style.display='none';
@@ -447,26 +450,79 @@ async function doAddAmount(id){const g=goals.find(x=>x.id===id);if(!g)return;con
 function showRewardPrompt(goalId){showModal('<div class="reward-box"><div style="font-size:44px;margin-bottom:10px;">🎉</div><div style="font-size:20px;font-weight:700;margin-bottom:6px;line-height:1.4;">Addition logged!</div><div style="font-size:14px;color:var(--text2);margin-bottom:4px;line-height:1.6;">Nice work. Want to claim your reward?</div><div style="font-size:13px;color:var(--text3);margin-bottom:8px;line-height:1.5;">One run of Flappy Bird 🐦</div><div class="reward-actions"><button class="reward-btn no" onclick="closeModal();renderDetailView(\''+goalId+'\')">✕</button><button class="reward-btn yes" onclick="closeModal();startFlappy(\''+goalId+'\')">✓</button></div></div>');}
 
 function startFlappy(returnGoalId){
-  const overlay=document.getElementById('flappy-overlay');
-  const W=Math.min(340,window.innerWidth-32),H=Math.min(500,window.innerHeight-100);
-  overlay.style.display='flex';
-  overlay.innerHTML='<button class="flappy-close" onclick="closeFlappy(\''+returnGoalId+'\')"><i class="ti ti-x"></i></button><canvas id="fc" width="'+W+'" height="'+H+'"></canvas><div id="fui" style="text-align:center;margin-top:12px;"><div style="font-size:15px;color:rgba(255,255,255,0.75);line-height:1.5;">Tap or press Space to flap!</div></div>';
-  const canvas=document.getElementById('fc'),ctx=canvas.getContext('2d'),CW=canvas.width,CH=canvas.height;
-  let bird={x:CW*0.22,y:CH/2,vy:0,r:14},pipes=[],score=0,frame=0,alive=true,started=false;
-  const gravity=0.38,flapStr=-7.2,pipeW=52,gap=CH*0.28,pipeSpeed=2.4;
+  var overlay=document.getElementById('flappy-overlay');
+  var W=Math.min(360,window.innerWidth-20);
+  var H=Math.min(560,window.innerHeight-80);
+  overlay.style.display='flex';overlay.style.flexDirection='column';overlay.style.alignItems='center';overlay.style.justifyContent='center';
+  overlay.innerHTML='<button class="flappy-close" onclick="closeFlappy(''+returnGoalId+'')"><i class="ti ti-x"></i></button><canvas id="fc" width="'+W+'" height="'+H+'" style="touch-action:none;border-radius:12px;"></canvas><div id="fui" style="text-align:center;margin-top:14px;"><div style="font-size:16px;color:rgba(255,255,255,0.85);line-height:1.5;">Tap anywhere to flap!</div></div>';
+  var canvas=document.getElementById('fc'),ctx=canvas.getContext('2d'),CW=canvas.width,CH=canvas.height;
+  var bird={x:CW*0.22,y:CH/2,vy:0,r:16};
+  var pipes=[],score=0,frame=0,alive=true,started=false;
+  var gravity=0.44,flapStr=-8.2,pipeW=56,gap=CH*0.30,pipeSpeed=2.6;
+  var clouds=[{x:CW*0.2,y:CH*0.1,s:1},{x:CW*0.65,y:CH*0.07,s:0.75},{x:CW*0.88,y:CH*0.17,s:0.85}];
   function flap(){if(!alive)return;if(!started)started=true;bird.vy=flapStr;}
-  canvas.addEventListener('click',flap);
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();flap();},{passive:false});
+  canvas.addEventListener('mousedown',flap);
   function onKey(e){if(e.code==='Space'){e.preventDefault();flap();}if(!alive)document.removeEventListener('keydown',onKey);}
   document.addEventListener('keydown',onKey);
-  function drawBg(){const sky=ctx.createLinearGradient(0,0,0,CH);sky.addColorStop(0,'#87CEEB');sky.addColorStop(1,'#c9e8f5');ctx.fillStyle=sky;ctx.fillRect(0,0,CW,CH);ctx.fillStyle='#8B6914';ctx.fillRect(0,CH-30,CW,30);ctx.fillStyle='#5a9e2f';ctx.fillRect(0,CH-35,CW,8);}
-  function drawPipes(){pipes.forEach(p=>{const g2=ctx.createLinearGradient(p.x,0,p.x+pipeW,0);g2.addColorStop(0,'#3a9e4e');g2.addColorStop(0.5,'#5ccc6b');g2.addColorStop(1,'#3a9e4e');ctx.fillStyle=g2;ctx.fillRect(p.x,0,pipeW,p.topH);ctx.fillStyle='#2d7a3b';ctx.fillRect(p.x-4,p.topH-14,pipeW+8,14);ctx.fillStyle=g2;const by=p.topH+gap;ctx.fillRect(p.x,by,pipeW,CH-by);ctx.fillStyle='#2d7a3b';ctx.fillRect(p.x-4,by,pipeW+8,14);});}
-  function drawBird(){ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-0.4,Math.min(0.4,bird.vy*0.06)));ctx.fillStyle='#f5d020';ctx.beginPath();ctx.arc(0,0,bird.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(5,-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(6,-4,2.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f0a500';ctx.beginPath();ctx.ellipse(-4,3,9,5,started?Math.sin(frame*0.3)*0.5:0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e05c00';ctx.beginPath();ctx.moveTo(bird.r-2,-2);ctx.lineTo(bird.r+8,0);ctx.lineTo(bird.r-2,4);ctx.closePath();ctx.fill();ctx.restore();}
-  function drawScore(){ctx.fillStyle='rgba(0,0,0,0.3)';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.fillText(score,CW/2+2,52);ctx.fillStyle='#fff';ctx.fillText(score,CW/2,50);}
-  function hit(){if(bird.y+bird.r>CH-35||bird.y-bird.r<0)return true;for(const p of pipes){if(bird.x+bird.r>p.x+4&&bird.x-bird.r<p.x+pipeW-4){if(bird.y-bird.r<p.topH||bird.y+bird.r>p.topH+gap)return true;}}return false;}
-  let raf;
-  function loop(){frame++;ctx.clearRect(0,0,CW,CH);drawBg();if(started){bird.vy+=gravity;bird.y+=bird.vy;if(frame%80===0){const minH=60,maxH=CH-gap-60;pipes.push({x:CW,topH:minH+Math.random()*(maxH-minH)});}pipes=pipes.filter(p=>p.x+pipeW>0);pipes.forEach(p=>{if(!p.passed&&p.x+pipeW<bird.x){p.passed=true;score++;}p.x-=pipeSpeed;});if(hit()){alive=false;showDeath();return;}}else{bird.y=CH/2+Math.sin(frame*0.05)*12;}drawPipes();drawBird();drawScore();raf=requestAnimationFrame(loop);}
+  function drawBg(){
+    var sky=ctx.createLinearGradient(0,0,0,CH);sky.addColorStop(0,'#4a90d9');sky.addColorStop(0.75,'#a8d8f0');sky.addColorStop(1,'#d0eefa');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,CW,CH);
+    clouds.forEach(function(c){ctx.fillStyle='rgba(255,255,255,0.88)';ctx.beginPath();ctx.arc(c.x,c.y,24*c.s,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(c.x+20*c.s,c.y+5*c.s,17*c.s,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(c.x-18*c.s,c.y+6*c.s,15*c.s,0,Math.PI*2);ctx.fill();c.x-=0.5;if(c.x<-50)c.x=CW+50;});
+    ctx.fillStyle='#5a9e30';ctx.fillRect(0,CH-38,CW,38);
+    ctx.fillStyle='#3d7a1e';ctx.fillRect(0,CH-38,CW,9);
+  }
+  function drawPipes(){
+    pipes.forEach(function(p){
+      var pg=ctx.createLinearGradient(p.x,0,p.x+pipeW,0);pg.addColorStop(0,'#2e7d32');pg.addColorStop(0.35,'#4caf50');pg.addColorStop(0.65,'#43a047');pg.addColorStop(1,'#1b5e20');
+      ctx.fillStyle=pg;ctx.fillRect(p.x,0,pipeW,p.topH);ctx.fillRect(p.x,p.topH+gap,pipeW,CH-p.topH-gap);
+      ctx.fillStyle='#388e3c';
+      ctx.beginPath();ctx.roundRect(p.x-6,p.topH-20,pipeW+12,20,5);ctx.fill();
+      ctx.beginPath();ctx.roundRect(p.x-6,p.topH+gap,pipeW+12,20,5);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(p.x+7,0,9,p.topH);ctx.fillRect(p.x+7,p.topH+gap+20,9,CH);
+    });
+  }
+  function drawBird(){
+    ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-0.5,Math.min(0.65,bird.vy*0.07)));
+    var bg=ctx.createRadialGradient(-3,-3,2,0,0,bird.r);bg.addColorStop(0,'#ffe566');bg.addColorStop(1,'#f5a010');
+    ctx.fillStyle=bg;ctx.beginPath();ctx.arc(0,0,bird.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#c87000';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#f09010';ctx.beginPath();ctx.ellipse(-3,3+(started?Math.sin(frame*0.35)*5:0),11,6,0.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(6,-4,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1a1a2e';ctx.beginPath();ctx.arc(7,-4,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(8.5,-5,1.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ff6600';ctx.beginPath();ctx.moveTo(bird.r-1,-2.5);ctx.lineTo(bird.r+11,0);ctx.lineTo(bird.r-1,3.5);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+  function drawScore(){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.font='bold 40px sans-serif';ctx.textAlign='center';ctx.fillText(score,CW/2+2,55);ctx.fillStyle='#fff';ctx.fillText(score,CW/2,53);}
+  function drawStart(){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.roundRect(CW/2-90,CH/2-58,180,48,12);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 20px sans-serif';ctx.textAlign='center';ctx.fillText('Tap to start! 🐦',CW/2,CH/2-26);}
+  function hit(){if(bird.y+bird.r>CH-38||bird.y-bird.r<0)return true;for(var i=0;i<pipes.length;i++){var p=pipes[i];if(bird.x+bird.r-5>p.x&&bird.x-bird.r+5<p.x+pipeW){if(bird.y-bird.r+5<p.topH||bird.y+bird.r-5>p.topH+gap)return true;}}return false;}
+  var raf;
+  function loop(){
+    frame++;ctx.clearRect(0,0,CW,CH);drawBg();
+    if(started){
+      bird.vy+=gravity;bird.y+=bird.vy;
+      if(frame%85===0){var minH=75,maxH=CH-gap-75;pipes.push({x:CW,topH:minH+Math.random()*(maxH-minH),passed:false});}
+      pipes=pipes.filter(function(p){return p.x+pipeW>0;});
+      pipes.forEach(function(p){if(!p.passed&&p.x+pipeW<bird.x){p.passed=true;score++;}p.x-=pipeSpeed;});
+      if(hit()){alive=false;showDeath();return;}
+    } else {
+      bird.y=CH/2+Math.sin(frame*0.05)*14;drawStart();
+    }
+    drawPipes();drawBird();drawScore();raf=requestAnimationFrame(loop);
+  }
   loop();
-  function showDeath(){cancelAnimationFrame(raf);ctx.clearRect(0,0,CW,CH);drawBg();drawPipes();drawBird();ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,CW,CH);ctx.fillStyle='#fff';ctx.font='bold 26px sans-serif';ctx.textAlign='center';ctx.fillText('Game over!',CW/2,CH/2-28);ctx.font='bold 46px sans-serif';ctx.fillStyle='#f5d020';ctx.fillText(score,CW/2,CH/2+20);ctx.font='15px sans-serif';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('Score: '+score,CW/2,CH/2+50);document.getElementById('fui').innerHTML='<div style="color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:12px;line-height:1.5;">Not bad! Back to crushing your goals 💪</div><button class="btn btn-primary" onclick="closeFlappy(\''+returnGoalId+'\')">Done</button>';}
+  function showDeath(){
+    cancelAnimationFrame(raf);ctx.clearRect(0,0,CW,CH);drawBg();drawPipes();drawBird();
+    ctx.fillStyle='rgba(0,0,0,0.52)';ctx.fillRect(0,0,CW,CH);
+    ctx.fillStyle='rgba(255,255,255,0.97)';ctx.beginPath();ctx.roundRect(CW/2-110,CH/2-90,220,175,18);ctx.fill();
+    ctx.fillStyle='#111';ctx.font='bold 22px sans-serif';ctx.textAlign='center';ctx.fillText('Game Over',CW/2,CH/2-52);
+    ctx.font='bold 60px sans-serif';ctx.fillStyle='#f5a010';ctx.fillText(score,CW/2,CH/2+18);
+    ctx.font='13px sans-serif';ctx.fillStyle='#777';ctx.fillText('YOUR SCORE',CW/2,CH/2+42);
+    var isHS=score>0&&score>flappyHighScore;
+    if(isHS){flappyHighScore=score;try{localStorage.setItem('flappyHS_'+userPin,score);}catch(e){}}
+    document.getElementById('fui').innerHTML='<div style="color:rgba(255,255,255,0.85);font-size:15px;margin-bottom:14px;line-height:1.6;">'+(isHS?'🏆 New high score: '+score+'!':'Score: '+score+' — back to crushing your goals 💪')+'</div><button class="btn btn-primary" style="padding:11px 30px;font-size:15px;" onclick="closeFlappy(''+returnGoalId+'')">Done</button>';
+  }
 }
 function closeFlappy(returnGoalId){document.getElementById('flappy-overlay').style.display='none';document.getElementById('flappy-overlay').innerHTML='';if(returnGoalId)renderDetailView(returnGoalId);}
 
